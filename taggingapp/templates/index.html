@@ -162,7 +162,6 @@
         function resetSidebarColors() {
           const sidebarItems = document.querySelectorAll("#sidebar a");
           sidebarItems.forEach((item) => {
-            item.style.color = ""; // Reset color to default
             item.classList.remove("active"); // Remove active class
           });
         }
@@ -170,7 +169,6 @@
         document.getElementById("sidebar").addEventListener("click", function (event) {
           if (event.target.tagName === "A") {
             resetSidebarColors();
-            event.target.style.color = "blue"; // Change color to blue
             event.target.classList.add("active"); // Set the clicked anchor as active
           }
         });
@@ -238,6 +236,8 @@
           anchor.href = "#";
           anchor.textContent = filename;
           anchor.id = filename;
+          resetSidebarColors();
+          anchor.classList.add("active");
           sidebar.appendChild(anchor);
         }
 
