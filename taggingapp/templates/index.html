@@ -52,8 +52,7 @@
                                 <!-- Modal body -->
                                 <div class="modal-body">
             
-                                    <form id="file-form" style="margin-top:20px;" enctype="multipart/form-data">
-                                        {% csrf_token %}
+                                    
                                         <div class="custom-file" style=" width: 80%;">
                                             <input type="file" class="custom-file-input" id="customFile" name="file">
                                             <label class="custom-file-label" for="customFile">Choose file</label>
@@ -64,7 +63,6 @@
                                             <input type="button" id="open-file-btn" class="btn btn-success" data-dismiss="modal" value="Open File">
                                             <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
                                         </div>
-                                    </form>
                                 </div>
             
                             </div>
@@ -82,8 +80,8 @@
                         <a class="dropdown-item" href="paste">Paste</a>
                         <a class="dropdown-item" href="#">Delete</a>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="#">Find</a>
-                        <a class="dropdown-item" href="#">Replace</a>
+                        <a class="dropdown-item" href="#" id="find">Find</a>
+                        <a class="dropdown-item" href="#" id="replace">Replace</a>
                     </div>
                 </li>
 
@@ -124,5 +122,245 @@
     <script src = "{% static '/jquery.min.js'%}"></script>
     <script src="{% static '/script.js'%}"></script>
 </body>
+
+    <script>
+
+        const fileContents = {};
+
+        document.getElementById("sidebar").addEventListener("click", function (e) {
+          if (e.target.tagName === "A") {
+            const previousFilename = document.querySelector("#sidebar .active");
+            if (previousFilename) {
+              previousFilename.classList.remove("active");
+              fileContents[previousFilename.textContent] = document.getElementById("textmain").innerHTML;
+            }
+
+            e.target.classList.add("active");
+            document.getElementById("textmain").innerHTML = fileContents[e.target.textContent] || "<p></p>";
+          }
+        });
+
+
+        function createNewFile() {
+          const newFilename = prompt("Enter the new file name:");
+          if (newFilename) {
+            const anchorTag = document.createElement("a");
+            anchorTag.href = "#";
+            anchorTag.textContent = newFilename;
+            document.getElementById("sidebar").appendChild(anchorTag);
+            // document.getElementById("textmain").innerHTML = "<p></p>";
+            fileContents[newFilename] = "<p></p>";
+          }
+        }
+
+
+        document.getElementById("new-file").addEventListener("click", function () {
+          createNewFile();
+        });
+
+
+        function resetSidebarColors() {
+          const sidebarItems = document.querySelectorAll("#sidebar a");
+          sidebarItems.forEach((item) => {
+            item.style.color = ""; // Reset color to default
+            item.classList.remove("active"); // Remove active class
+          });
+        }
+
+        document.getElementById("sidebar").addEventListener("click", function (event) {
+          if (event.target.tagName === "A") {
+            resetSidebarColors();
+            event.target.style.color = "blue"; // Change color to blue
+            event.target.classList.add("active"); // Set the clicked anchor as active
+          }
+        });
+
+        function cleanHTML(html) {
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = html;
+          const markTags = tempDiv.getElementsByTagName("mark");
+
+          while (markTags.length) {
+            const markTag = markTags[0];
+            const parent = markTag.parentNode;
+            parent.replaceChild(document.createTextNode(markTag.textContent), markTag);
+          }
+
+          return tempDiv.innerHTML;
+        }
+
+        function getActiveFilename() {
+          const activeElement = document.querySelector("#sidebar a.active");
+          return activeElement ? activeElement.textContent : "untitled.txt";
+        }
+
+        // document.getElementById("save-file").addEventListener("click", function () {
+        //   const content = document.getElementById("textmain").innerHTML.replace(/<br>/g, "\n");
+        //   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        //   const anchor = document.createElement("a");
+
+        //   anchor.href = URL.createObjectURL(blob);
+        //   anchor.download = getActiveFilename(); // Get filename from the selected sidebar anchor
+        //   anchor.style.display = "none";
+        //   document.body.appendChild(anchor);
+        //   anchor.click();
+        //   document.body.removeChild(anchor);
+        // });
+        
+
+        function saveFile(filename, content) {
+          const cleanedContent = cleanHTML(content);
+          const blob = new Blob([cleanedContent], { type: "text/plain;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename;
+          link.click();
+
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 100);
+        }
+
+        document.getElementById("save-file").addEventListener("click", function () {
+          const textArea = document.getElementById("textmain");
+          const filename = getActiveFilename();
+
+          saveFile(filename, textArea.innerHTML);
+        });
+
+
+
+        function createSidebarItem(filename) {
+          const sidebar = document.getElementById("sidebar");
+          const anchor = document.createElement("a");
+          anchor.href = "#";
+          anchor.textContent = filename;
+          anchor.id = filename;
+          sidebar.appendChild(anchor);
+        }
+
+
+        document.getElementById("open-file-btn").addEventListener("click", function () {
+        const inputElement = document.getElementById("customFile");
+        const file = inputElement.files[0];
+
+        if (file) {
+          const reader = new FileReader();
+          reader.readAsText(file, "UTF-8");
+
+          reader.onload = function (evt) {
+            document.getElementById("textmain").innerHTML = evt.target.result;
+            createSidebarItem(file.name);
+          };
+
+          reader.onerror = function (evt) {
+            alert("Error reading the file");
+          };
+        } else {
+          alert("Please select a file");
+        }
+      });
+
+    </script>
+    <script>
+
+        // function highlightMatches(node, keyword) {
+        //   if (node.nodeType === 3) {
+        //     const nodeValue = node.nodeValue.toLowerCase();
+        //     const keywordLower = keyword.toLowerCase();
+        //     const startIndex = nodeValue.indexOf(keywordLower);
+
+        //     if (startIndex > -1) {
+        //       const endIndex = startIndex + keyword.length;
+        //       const highlighted = document.createElement("mark");
+        //       highlighted.textContent = node.nodeValue.slice(startIndex, endIndex);
+
+        //       const after = node.splitText(endIndex);
+        //       node.nodeValue = node.nodeValue.slice(0, startIndex);
+          //     node.parentNode.insertBefore(highlighted, after);
+          //   }
+          // } else if (node.nodeType === 1 && node.childNodes && !/(script|style)/i.test(node.tagName)) {
+          //   Array.from(node.childNodes).forEach((child) => highlightMatches(child, keyword));
+        //   }
+        // }
+        function highlightMatches(node, keyword) {
+          if (node.nodeType === 3) {
+            const nodeValue = node.nodeValue.toLowerCase();
+            const keywordLower = keyword.toLowerCase();
+            let startIndex = nodeValue.indexOf(keywordLower);
+
+            while (startIndex > -1) {
+              const endIndex = startIndex + keyword.length;
+              const highlighted = document.createElement("mark");
+              highlighted.textContent = node.nodeValue.slice(startIndex, endIndex);
+
+              const after = node.splitText(endIndex);
+              node.nodeValue = node.nodeValue.slice(0, startIndex);
+              node.parentNode.insertBefore(highlighted, after);
+
+              // Update node value and search for the next occurrence
+              node = after;
+              startIndex = node.nodeValue.toLowerCase().indexOf(keywordLower);
+            }
+          } else if (node.nodeType === 1 && node.childNodes && !/(script|style)/i.test(node.tagName)) {
+            Array.from(node.childNodes).forEach((child) => highlightMatches(child, keyword));
+          }
+        }
+
+
+        function removeHighlights() {
+          document.querySelectorAll("mark").forEach((mark) => {
+            mark.parentNode.replaceChild(document.createTextNode(mark.textContent), mark);
+          });
+        }
+
+        document.getElementById("find").addEventListener("click", function () {
+          const keyword = prompt("Enter the keyword to find:");
+
+          if (keyword) {
+            const textArea = document.getElementById("textmain");
+            removeHighlights();
+            highlightMatches(textArea, keyword);
+          }
+        });
+
+        function replaceMatches(node, keyword, replacement) {
+          if (node.nodeType === 3) {
+            const nodeValue = node.nodeValue.toLowerCase();
+            const keywordLower = keyword.toLowerCase();
+            let startIndex = nodeValue.indexOf(keywordLower);
+
+            while (startIndex > -1) {
+              const endIndex = startIndex + keyword.length;
+              const replaced = document.createTextNode(replacement);
+
+              const after = node.splitText(endIndex);
+              node.nodeValue = node.nodeValue.slice(0, startIndex);
+              node.parentNode.insertBefore(replaced, after);
+
+              // Update node value and search for the next occurrence
+              node = after;
+              startIndex = node.nodeValue.toLowerCase().indexOf(keywordLower);
+            }
+          } else if (node.nodeType === 1 && node.childNodes && !/(script|style)/i.test(node.tagName)) {
+            Array.from(node.childNodes).forEach((child) => replaceMatches(child, keyword, replacement));
+          }
+        }
+
+        document.getElementById("replace").addEventListener("click", function () {
+          const keyword = prompt("Enter the keyword to replace:");
+          const replacement = prompt("Enter the replacement text:");
+
+          if (keyword && replacement !== null) {
+            const textArea = document.getElementById("textmain");
+            replaceMatches(textArea, keyword, replacement);
+          }
+        });
+
+
+
+    </script>
 
 </html>
